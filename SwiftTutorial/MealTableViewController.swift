@@ -18,13 +18,15 @@ class MealTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadSampleMeals()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        
+        // Load any saved meals, otherwise load sample data.
+        if let savedMeals = loadMeals() {
+            meals += savedMeals
+        }
+        else {
+            // Load the sample data.
+            loadSampleMeals()
+        }
     }
 
     override func didReceiveMemoryWarning() {
@@ -32,6 +34,7 @@ class MealTableViewController: UITableViewController {
         // Dispose of any resources that can be recreated.
     }
 
+    
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -39,7 +42,6 @@ class MealTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
         return meals.count
     }
 
@@ -57,8 +59,6 @@ class MealTableViewController: UITableViewController {
         cell.nameLabel.text = meal.name
         cell.photoImageView.image = meal.photo
         cell.ratingControl.rating = meal.rating
-
-        // Configure the cell...
 
         return cell
     }
@@ -79,32 +79,18 @@ class MealTableViewController: UITableViewController {
             // Delete the row from the data source
             meals.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
+
+            // Save the meals.
+            saveMeals()
+
         } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
+            // 🔥🔥🔥
         }    
     }
     
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
+    
     
     // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
@@ -146,16 +132,38 @@ class MealTableViewController: UITableViewController {
                 meals[selectedIndexPath.row] = meal
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             } else {
+                
                 // Add a new meal.
                 let newIndexPath = IndexPath(row: meals.count, section: 0)
                 meals.append(meal)
                 tableView.insertRows(at: [newIndexPath], with: .automatic)
             }
         }
+        
+        // Save the meals.
+        saveMeals()
+        
     }
     
-    //MARK: Private Methods
     
+    //MARK: Private Methods
+
+    private func saveMeals() {
+        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(meals, toFile: Meal.ArchiveURL.path)
+        
+        if isSuccessfulSave {
+            os_log("Meals successfully saved.", log: OSLog.default, type: .debug)
+        } else {
+            os_log("Failed to save meals...", log: OSLog.default, type: .error)
+        }
+    }
+    
+    
+    private func loadMeals() -> [Meal]? {
+        return NSKeyedUnarchiver.unarchiveObject(withFile: Meal.ArchiveURL.path) as? [Meal]
+    }
+    
+
     private func loadSampleMeals() {
         
         if !meals.isEmpty{ meals.removeAll() }
